@@ -194,7 +194,7 @@ def ip4_addresses():
     return ip_list
 
 self_addrs = ip4_addresses()
-files = set()
+files = []
 
 class Directory(TCPConnect):
     def __init__(self, addr, port):
@@ -286,7 +286,7 @@ class File(TCPListen):
     def __init__(self, path, port = 0):
         self.path = path
         TCPListen.__init__(self, port)
-        files.add(self)
+        files.append(self)
         info('Port %5d: "%s"' % (self.port, self.path))
     def __str__(self):
         return self.path
