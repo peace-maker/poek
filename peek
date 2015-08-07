@@ -95,8 +95,6 @@ def recvuntil(sock, stop, drop=True):
 
 pwnlib.term.init()
 
-request_file_list()
-
 files = []
 cur_file = 0
 do_quit = False
@@ -195,7 +193,7 @@ def finish():
         t.sock.close()
 
 def loop():
-    global cur_file, do_quit
+    global cur_file, do_quit, last_request
     try:
         rfds, _, _ = select.select([sys.stdin, lsock] + list(transfers),
                                    [], [], 1)
@@ -232,6 +230,7 @@ def loop():
         if k == 'r':
             info('Requesting files')
             request_file_list()
+            last_request = time.time()
         elif k == '<up>':
             if cur_file > 0:
                 files_h[cur_file].update(fmt_file(files[cur_file]))
@@ -258,8 +257,17 @@ def loop():
                 finish()
                 sys.exit()
 
-# last_request
+        elif k == 'a':
+            for f in files:
+                Transfer(f)
+
+request_interval = 5
+last_request = 0
 while True:
+    now = time.time()
+    if now - last_request > request_interval:
+        request_file_list()
+        last_request = now
     try:
         loop()
     except KeyboardInterrupt:
