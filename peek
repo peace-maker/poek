@@ -2,7 +2,6 @@
 import select
 import errno
 import socket
-import netifaces
 import struct
 import sys
 import os
