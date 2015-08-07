@@ -99,8 +99,10 @@ request_file_list()
 
 files = []
 cur_file = 0
+do_quit = False
+quit_h = pwnlib.term.output('', float=True, priority=15)
 files_h = []
-transfers = set()
+transfers = []
 
 class Transfer:
     def __init__(self, f):
@@ -141,7 +143,7 @@ class Transfer:
         self.h_prefix = pwnlib.term.output(prefix, float=True, priority=5)
         self.h_progress = pwnlib.term.output('', float=True, priority=5)
         self.h_suffix = pwnlib.term.output(')\n', float=True, priority=5)
-        transfers.add(self)
+        transfers.append(self)
 
     def fileno(self):
         return self.sock.fileno()
@@ -162,7 +164,7 @@ class Transfer:
         self.h_suffix.delete()
         self.sock.close()
         self.fd.close()
-        transfers.discard(self)
+        transfers.remove(self)
 
     def update(self):
         now = time.time()
@@ -174,6 +176,10 @@ class Transfer:
             self.h_progress.update(progress)
             self.last_update = now
 
+    def cancel(self):
+        self.finish()
+        warn('"%s" <= %s canceled' % (self.path, self.addr))
+
 def fmt_file(f, selected=False):
     addr, port, path = f
     host = pwnlib.term.text.magenta('%15s:%-5d ' % (addr, port))
@@ -182,13 +188,14 @@ def fmt_file(f, selected=False):
     return host + path + '\n'
 
 def finish():
+    quit_h.delete()
     for h in files_h:
         h.delete()
     for t in transfers:
         t.sock.close()
 
 def loop():
-    global cur_file
+    global cur_file, do_quit
     try:
         rfds, _, _ = select.select([sys.stdin, lsock] + list(transfers),
                                    [], [], 1)
@@ -218,6 +225,10 @@ def loop():
 
     if sys.stdin in rfds:
         k = pwnlib.term.key.get()
+        if not k == 'q':
+            do_quit = False
+            quit_h.update('')
+
         if k == 'r':
             info('Requesting files')
             request_file_list()
@@ -237,13 +248,27 @@ def loop():
         elif k in ('<space>', '<enter>') and files:
             Transfer(files[cur_file])
 
+        elif k == 'q':
+            if transfers and not do_quit:
+                msg = 'Active transfers; type `q` again to force exit'
+                # quit_h.update('  ' + pwnlib.term.text.on_red(msg))
+                quit_h.update('  ' + pwnlib.term.text.bold_yellow(msg))
+                do_quit = True
+            else:
+                finish()
+                sys.exit()
+
+# last_request
 while True:
     try:
         loop()
     except KeyboardInterrupt:
-        finish()
-        info('Interrupted')
-        break
+        if transfers:
+            transfers[-1].cancel()
+        else:
+            finish()
+            info('Interrupted')
+            break
     except Exception as e:
         err('An exception occurred: %r' % e)
         for line in traceback.format_exc().splitlines():
