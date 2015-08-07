@@ -2,7 +2,6 @@
 import select
 import errno
 import socket
-import netifaces
 import struct
 import sys
 import os
@@ -193,7 +192,9 @@ def ip4_addresses():
                 ip_list.append(link['addr'])
     return ip_list
 
-self_addrs = ip4_addresses()
+self_addrs = []
+for _iface, addrs in pwnlib.util.net.interfaces4().items():
+    self_addrs += addrs
 files = []
 
 class Directory(TCPConnect):
@@ -221,7 +222,7 @@ class PeekHandler(UDPListen):
             return
         if addr in self_addrs:
             debug('Ignoring request from self (%s)' % addr)
-            # return
+            return
         port = struct.unpack('!H', data[6:8])[0]
         info('%s wants file list' % addr)
         Directory(addr, port)
