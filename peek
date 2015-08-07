@@ -261,6 +261,22 @@ def loop():
             for f in files:
                 Transfer(f)
 
+        elif k == 'h':
+            keys = (('q', 'Quit'),
+                    ('r', 'Refresh'),
+                    ('a', 'Get all'),
+                    ('SPC', 'Download'),
+                    )
+            help = []
+            for key, desc in keys:
+                help.append('%s%s%s' % \
+                            (pwnlib.term.text.bold_green(key),
+                             pwnlib.term.text.magenta(':'),
+                             desc,
+                             ))
+            sep = pwnlib.term.text.magenta(', ')
+            info(sep.join(help))
+
 request_interval = 5
 last_request = 0
 while True:
