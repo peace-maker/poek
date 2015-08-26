@@ -106,10 +106,13 @@ class Transfer:
         addr, port, path = f
         base, ext = os.path.splitext(os.path.basename(path))
         path = base + ext
-        n = 1
-        while os.path.exists(path):
-            path = '%s.%d%s' % (base, n, ext)
-            n += 1
+        if os.path.exists(path):
+            overwrite = pwnlib.ui.yesno('File exists; overwrite?', False)
+            if not overwrite:
+                n = 1
+                while os.path.exists(path):
+                    path = '%s.%d%s' % (base, n, ext)
+                    n += 1
         self.path = path
 
         try:
