@@ -31,6 +31,13 @@ If one or more `poke` instances are discovered, a file list will be fetched and
 shown.  Navigate the list with the arrow keys and hit space or enter to download
 the selected file.  Hit `h` for a list of shortcuts.
 
-You can connect directly to a `poke` by specifying its address as a command line
-argument.  As for `poke` the port number can be changed with the `--port`
-option.
+You can connect directly to a `poke` instance by specifying its address on the
+command line:
+
+```sh
+$ peek <far-away-host>
+```
+
+This is useful if the host is not within UDP broadcast range.
+
+As for `poke` the port number can be changed with the `--port` option.
