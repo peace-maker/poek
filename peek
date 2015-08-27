@@ -263,7 +263,7 @@ def loop():
             for f in files:
                 Transfer(f)
 
-        elif k == 'h':
+        elif k in ('h', '?', '<f1>'):
             keys = (('q', 'Quit'),
                     ('r', 'Refresh'),
                     ('a', 'Get all'),
