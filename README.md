@@ -6,7 +6,7 @@ This time in an even more user-friendly version; If the poker and the peeker are
 located within UDP broadcast range, they will automatically discover each other.
 
 Both `peek` and `poke` are completely self contained Python scripts (though they
-depend on Pwnlib).
+depend on [Pwnlib](https://github.com/Gallopsled/pwntools).
 
 ## `poke`
 
@@ -16,8 +16,8 @@ Pretty simple:  To start serving files `foo`, `bar` and `baz` just run:
 $ poke foo bar baz
 ```
 
-If for some you don't want to use the default port (1337, what else), you can
-change that with the `--port` option
+If for some reason you don't want to use the default port (1337, what else), you
+can change that with the `--port` option
 
 ## `peek`
 
@@ -40,4 +40,4 @@ $ peek <far-away-host>
 
 This is useful if the host is not within UDP broadcast range.
 
-As for `poke` the port number can be changed with the `--port` option.
+As with `poke` the port number can be changed with the `--port` option.
