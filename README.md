@@ -6,7 +6,7 @@ This time in an even more user-friendly version; If the poker and the peeker are
 located within UDP broadcast range, they will automatically discover each other.
 
 Both `peek` and `poke` are completely self contained Python scripts (though they
-depend on [Pwnlib](https://github.com/Gallopsled/pwntools).
+depend on [Pwntools](https://github.com/Gallopsled/pwntools)).
 
 ## `poke`
 
