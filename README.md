@@ -41,3 +41,15 @@ $ peek <far-away-host>
 This is useful if the host is not within UDP broadcast range.
 
 As with `poke` the port number can be changed with the `--port` option.
+
+## `nc`
+
+Poke sends the contents of files without any meta data and directories as
+regular tar archives.  In other words, if you don't have `peek` installed you
+can just `nc` to the poker on the port corresponding to the desired file or
+directory:
+
+```
+$ nc <host> 1337 > file01 # first file in list
+$ nc <host> 1338 > file02 # second file, ...
+```
