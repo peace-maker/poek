@@ -9,6 +9,9 @@ import argparse
 import time
 import traceback
 import pwnlib
+import tempfile
+import tarfile
+
 from threading import Thread
 
 PORT = 1337
@@ -104,22 +107,29 @@ transfers = []
 class Transfer:
     def __init__(self, f):
         addr, port, path = f
+        isdir = path[-1] == '/'
+        path = path.rstrip('/')
         base, ext = os.path.splitext(os.path.basename(path))
-        path = base + ext
-        if os.path.exists(path):
+        name = base + ext
+        if os.path.exists(name):
             overwrite = pwnlib.ui.yesno('File exists; overwrite?', False)
             if not overwrite:
                 n = 1
-                while os.path.exists(path):
-                    path = '%s.%d%s' % (base, n, ext)
+                while os.path.exists(name):
+                    name = '%s.%d%s' % (base, n, ext)
                     n += 1
-        self.path = path
+        if isdir:
+            name += '/'
+        self.name = name
 
-        try:
-            self.fd = open(path, 'w')
-        except IOError:
-            err('Could not open "%s" for writing' % path)
-            return
+        if isdir:
+            self.fd = tempfile.TemporaryFile(prefix='peek')
+        else:
+            try:
+                self.fd = open(name, 'w')
+            except IOError:
+                err('Could not open "%s" for writing' % name)
+                return
 
         self.addr = addr
         self.port = port
@@ -152,7 +162,7 @@ class Transfer:
         data = self.sock.recv(4096)
         if not data:
             self.finish()
-            info('"%s" <= %s completed' % (self.path, self.addr))
+            info('"%s" <= %s completed' % (self.name, self.addr))
             return
         self.numb += len(data)
         self.fd.write(data)
@@ -163,7 +173,14 @@ class Transfer:
         self.h_progress.delete()
         self.h_suffix.delete()
         self.sock.close()
-        self.fd.close()
+        if self.name[-1] == '/':
+            self.fd.flush()
+            self.fd.seek(0)
+            tar = tarfile.open(fileobj=self.fd, mode='r')
+            tar.extractall()
+            tar.close()
+        else:
+            self.fd.close()
         transfers.remove(self)
 
     def update(self):
@@ -296,6 +313,7 @@ while True:
             info('Interrupted')
             break
     except Exception as e:
+        raise
         err('An exception occurred: %r' % e)
         for line in traceback.format_exc().splitlines():
             debug(line)

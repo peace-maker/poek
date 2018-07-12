@@ -1,14 +1,16 @@
 #!/usr/bin/env python2
-import select
+import argparse
 import errno
+import os
+import pwnlib
+import select
 import socket
 import struct
 import sys
-import os
-import argparse
+import tarfile
+import tempfile
 import time
 import traceback
-import pwnlib
 
 PORT = 1337
 
@@ -23,15 +25,21 @@ parser.add_argument(
     )
 
 parser.add_argument(
-    '--port',
+    '--port', '-p',
     type=int,
     default=PORT,
     help='Port to listen on for file list requests',
     )
 
 parser.add_argument(
-    'files',
-    metavar='<file>',
+    '--watch', '-w',
+    metavar='<dir>',
+    help='Watch directory and serve everything added to it',
+    )
+
+parser.add_argument(
+    'paths',
+    metavar='<path>',
     nargs='+',
     )
 
@@ -195,7 +203,7 @@ def ip4_addresses():
 self_addrs = []
 for _iface, addrs in pwnlib.util.net.interfaces4().items():
     self_addrs += addrs
-files = []
+items = []
 
 class Directory(TCPConnect):
     def __init__(self, addr, port):
@@ -203,9 +211,9 @@ class Directory(TCPConnect):
     def on_connected(self):
         debug('Connected to %s:%d, sending file list' % \
               (self.addr, self.port))
-        for f in files:
-            self.sock.send(struct.pack('!H', f.port) + \
-                           f.path + '\x00')
+        for i in items:
+            self.sock.send(struct.pack('!H', i.port) + \
+                           i.path + '\x00')
         self.sock.send('\x00\x00')
         self.sock.close()
     def on_refused(self):
@@ -224,27 +232,35 @@ class PeekHandler(UDPListen):
             debug('Ignoring request from self (%s)' % addr)
             return
         port = struct.unpack('!H', data[6:8])[0]
-        info('%s wants file list' % addr)
+        debug('%s wants file list' % addr)
         Directory(addr, port)
 
 class Transfer(Selectable):
-    def __init__(self, sock, addr, path):
+    def __init__(self, sock, addr, item):
         self.numb = 0
         self.sock = sock
         self.addr = addr
-        self.path = path
+        self.path = item.path
         self.start = time.time()
         self.last_update = 0
         try:
-            self.fd = open(path, 'r')
+            if self.path[-1] == '/':
+                self.fd = tempfile.TemporaryFile(prefix='poke')
+                name = os.path.basename(self.path[:-1])
+                tar = tarfile.open(fileobj=self.fd, mode='w')
+                tar.add(self.path, arcname=name)
+                tar.close()
+                self.fd.seek(0)
+            else:
+                self.fd = open(self.path, 'r')
         except IOError as e:
             if e.errno == errno.ENOENT:
-                warn('Could not open "%s" for reading' % path)
+                warn('Could not open "%s" for reading' % self.path)
                 return
             raise
         prefix = pwnlib.term.text.magenta('[Active]') + \
                  pwnlib.term.text.blue(' I ') + \
-                 '"%s" => %s (' % (path, addr)
+                 '"%s" => %s (' % (self.path, self.addr)
         self.h_prefix = pwnlib.term.output(prefix, float=True)
         self.h_progress = pwnlib.term.output('', float=True)
         self.h_suffix = pwnlib.term.output(')\n', float=True)
@@ -283,23 +299,31 @@ class Transfer(Selectable):
             self.h_progress.update(progress)
             self.last_update = now
 
-class File(TCPListen):
-    def __init__(self, path, port = 0):
+class Item(TCPListen):
+    def __init__(self, path, port=0):
+        if not os.path.isdir(path) and not os.path.isfile(path):
+            raise IOError('No such file or directory: %s' % path)
+        path = path.rstrip('/')
+        if os.path.isdir(path):
+            path += '/'
         self.path = path
         TCPListen.__init__(self, port)
-        files.append(self)
+        items.append(self)
         info('Port %5d: "%s"' % (self.port, self.path))
     def __str__(self):
         return self.path
     def on_connection(self, sock, addr):
         info('%s wants "%s"' % \
              (addr, self.path))
-        Transfer(sock, addr, self.path)
+        Transfer(sock, addr, self)
 
 pwnlib.term.init()
 
 PeekHandler(args.port)
-for f in args.files:
-    File(f, port=args.port)
+for p in args.paths:
+    try:
+        Item(p, port=args.port)
+    except IOError as e:
+        err(e)
 
 event_loop.run()
