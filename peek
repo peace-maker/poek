@@ -206,8 +206,8 @@ def fmt_file(f, selected=False):
 
 def finish():
     quit_h.delete()
-    for h in files_h:
-        h.delete()
+    for h, f in zip(files_h, files):
+        h.update(fmt_file(f))
     for t in transfers:
         t.sock.close()
 
