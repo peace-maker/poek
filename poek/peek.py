@@ -15,8 +15,6 @@ import pwnlib.ui
 import tempfile
 import tarfile
 
-from threading import Thread
-
 PORT = 1337
 
 parser = argparse.ArgumentParser(
@@ -65,13 +63,8 @@ def warn(s):
 def err(s):
     _log(pwnlib.term.text.red('E'), s)
 
-lsock = socket.socket(socket.AF_INET,
-                      socket.SOCK_STREAM)
-lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-lsock.setblocking(False)
-lsock.bind(('', 0))
-lport = lsock.getsockname()[1]
-lsock.listen(10)
+lsock = None
+lport = 0
 
 def request_file_list():
     addr = args.host
@@ -103,7 +96,7 @@ pwnlib.term.init()
 files = []
 cur_file = 0
 do_quit = False
-quit_h = pwnlib.term.output('', float=True, priority=15)
+quit_h = None
 files_h = []
 transfers = []
 
@@ -299,24 +292,38 @@ def loop():
             sep = pwnlib.term.text.magenta(', ')
             info(sep.join(help))
 
-request_interval = 5
-last_request = 0
-while True:
-    now = time.time()
-    if now - last_request > request_interval:
-        request_file_list()
-        last_request = now
-    try:
-        loop()
-    except KeyboardInterrupt:
-        if transfers:
-            transfers[-1].cancel()
-        else:
-            finish()
-            info('Interrupted')
-            break
-    except Exception as e:
-        raise
-        err('An exception occurred: %r' % e)
-        for line in traceback.format_exc().splitlines():
-            debug(line)
+def main():
+    global lsock, lport, quit_h
+    lsock = socket.socket(socket.AF_INET,
+                      socket.SOCK_STREAM)
+    lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    lsock.setblocking(False)
+    lsock.bind(('', 0))
+    lport = lsock.getsockname()[1]
+    lsock.listen(10)
+
+    quit_h = pwnlib.term.output('', float=True, priority=15)
+    request_interval = 5
+    last_request = 0
+    while True:
+        now = time.time()
+        if now - last_request > request_interval:
+            request_file_list()
+            last_request = now
+        try:
+            loop()
+        except KeyboardInterrupt:
+            if transfers:
+                transfers[-1].cancel()
+            else:
+                finish()
+                info('Interrupted')
+                break
+        except Exception as e:
+            raise
+            err('An exception occurred: %r' % e)
+            for line in traceback.format_exc().splitlines():
+                debug(line)
+
+if __name__ == '__main__':
+    main()

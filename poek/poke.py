@@ -192,17 +192,6 @@ class UDPListen(Selectable):
             self.on_data(data, addr)
         self.watch_read(cb)
 
-def ip4_addresses():
-    ip_list = []
-    for interface in netifaces.interfaces():
-        if interface == 'lo':
-            continue
-        addresses = netifaces.ifaddresses(interface)
-        if socket.AF_INET in addresses:
-            for link in addresses[socket.AF_INET]:
-                ip_list.append(link['addr'])
-    return ip_list
-
 self_addrs = []
 for _iface, addrs in pwnlib.util.net.interfaces4().items():
     self_addrs += addrs
@@ -320,13 +309,17 @@ class Item(TCPListen):
              (addr, self.path))
         Transfer(sock, addr, self)
 
-pwnlib.term.init()
+def main():
+    pwnlib.term.init()
 
-PeekHandler(args.port)
-for p in args.paths:
-    try:
-        Item(p, port=args.port)
-    except IOError as e:
-        err(e)
+    PeekHandler(args.port)
+    for p in args.paths:
+        try:
+            Item(p, port=args.port)
+        except IOError as e:
+            err(e)
 
-event_loop.run()
+    event_loop.run()
+
+if __name__ == '__main__':
+    main()

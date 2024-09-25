@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poek"
+version = "1.0"
+description = "A simple file transfer tool"
+authors = [{"name" = "br0ns"}]
+readme = "README.md"
+dependencies = ["pwntools<=4.12.0"]
+
+[project.scripts]
+poke = "poek.poke:main"
+peek = "poek.peek:main"
+
+[tool.setuptools]
+packages = ["poek"]

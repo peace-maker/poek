@@ -8,6 +8,9 @@ located within UDP broadcast range, they will automatically discover each other.
 Both `peek` and `poke` are completely self contained Python scripts (though they
 depend on [Pwntools](https://github.com/Gallopsled/pwntools)).
 
+## Installation
+`pip install git+https://github.com/br0ns/poek`
+
 ## `poke`
 
 Pretty simple:  To start serving files `foo`, `bar` and `baz` just run:
