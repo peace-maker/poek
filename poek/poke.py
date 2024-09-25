@@ -227,6 +227,12 @@ class PeekHandler(UDPListen):
         debug('%s wants file list' % addr)
         Directory(addr, port)
 
+# Compatibility with newer versions of pwntools
+# https://github.com/Gallopsled/pwntools/pull/2242
+def delete_cell_compat(cell):
+    if hasattr(cell, 'delete'):
+        cell.delete()
+
 class Transfer(Selectable):
     def __init__(self, sock, addr, item):
         self.numb = 0
@@ -276,9 +282,9 @@ class Transfer(Selectable):
                 info('"%s" => %s completed' % (self.path, self.addr))
         self.watch_write(cb)
     def finish(self):
-        self.h_prefix.delete()
-        self.h_progress.delete()
-        self.h_suffix.delete()
+        delete_cell_compat(self.h_prefix)
+        delete_cell_compat(self.h_progress)
+        delete_cell_compat(self.h_suffix)
         self.sock.close()
         self.unwatch()
     def update(self):
@@ -311,6 +317,10 @@ class Item(TCPListen):
 
 def main():
     pwnlib.term.init()
+    # Compatibility with newer versions of pwntools
+    # https://github.com/Gallopsled/pwntools/pull/2242
+    if hasattr(pwnlib.term.term, "setup_done") and not pwnlib.term.term.setup_done:
+        pwnlib.term.term.setupterm()
 
     PeekHandler(args.port)
     for p in args.paths:

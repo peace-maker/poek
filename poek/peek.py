@@ -91,14 +91,18 @@ def recvuntil(sock, stop, drop=True):
         data = data[:-len(stop)]
     return data
 
-pwnlib.term.init()
-
 files = []
 cur_file = 0
 do_quit = False
 quit_h = None
 files_h = []
 transfers = []
+
+# Compatibility with newer versions of pwntools
+# https://github.com/Gallopsled/pwntools/pull/2242
+def delete_cell_compat(cell):
+    if hasattr(cell, 'delete'):
+        cell.delete()
 
 class Transfer:
     def __init__(self, f):
@@ -165,9 +169,9 @@ class Transfer:
         self.update()
 
     def finish(self):
-        self.h_prefix.delete()
-        self.h_progress.delete()
-        self.h_suffix.delete()
+        delete_cell_compat(self.h_prefix)
+        delete_cell_compat(self.h_progress)
+        delete_cell_compat(self.h_suffix)
         self.sock.close()
         if self.name[-1] == '/':
             self.fd.flush()
@@ -201,7 +205,7 @@ def fmt_file(f, selected=False):
     return host + path + '\n'
 
 def finish():
-    quit_h.delete()
+    delete_cell_compat(quit_h)
     for h, f in zip(files_h, files):
         h.update(fmt_file(f))
     for t in transfers:
@@ -302,6 +306,11 @@ def main():
     lport = lsock.getsockname()[1]
     lsock.listen(10)
 
+    pwnlib.term.init()
+    # Compatibility with newer versions of pwntools
+    # https://github.com/Gallopsled/pwntools/pull/2242
+    if hasattr(pwnlib.term.term, "setup_done") and not pwnlib.term.term.setup_done:
+        pwnlib.term.term.setupterm()
     quit_h = pwnlib.term.output('', float=True, priority=15)
     request_interval = 5
     last_request = 0

@@ -8,7 +8,7 @@ version = "1.0"
 description = "A simple file transfer tool"
 authors = [{"name" = "br0ns"}]
 readme = "README.md"
-dependencies = ["pwntools<=4.12.0"]
+dependencies = ["pwntools"]
 
 [project.scripts]
 poke = "poek.poke:main"
