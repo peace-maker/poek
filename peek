@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import select
 import errno
 import socket
@@ -9,6 +9,9 @@ import argparse
 import time
 import traceback
 import pwnlib
+import pwnlib.util.misc
+import pwnlib.term
+import pwnlib.ui
 import tempfile
 import tarfile
 
@@ -45,9 +48,9 @@ args = parser.parse_args()
 
 def _log(emblem, msg):
     t = time.strftime('%T', time.localtime())
-    print >>sys.stderr, '%s %s %s' % \
+    print('%s %s %s' % \
         (pwnlib.term.text.magenta(t),
-         emblem, msg)
+         emblem, msg), file=sys.stderr)
 
 def debug(s):
     if args.verbose:
@@ -78,17 +81,17 @@ def request_file_list():
                          socket.IPPROTO_UDP)
     sock.bind(('', 0))
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    data = 'POKEME' + struct.pack('!H', lport)
+    data = b'POKEME' + struct.pack('!H', lport)
     sock.sendto(data, (addr, port))
 
 def recvn(sock, n):
-    data = ''
+    data = b''
     while len(data) < n:
         data += sock.recv(n - len(data))
     return data
 
 def recvuntil(sock, stop, drop=True):
-    data = ''
+    data = b''
     while not data.endswith(stop):
         data += sock.recv(1)
     if drop:
@@ -126,7 +129,7 @@ class Transfer:
             self.fd = tempfile.TemporaryFile(prefix='peek')
         else:
             try:
-                self.fd = open(name, 'w')
+                self.fd = open(name, 'wb')
             except IOError:
                 err('Could not open "%s" for writing' % name)
                 return
@@ -162,7 +165,7 @@ class Transfer:
         data = self.sock.recv(4096)
         if not data:
             self.finish()
-            info('"%s" <= %s completed' % (self.name, self.addr))
+            info('"%s" <= %s completed (%s)' % (self.name, self.addr, pwnlib.util.misc.size(self.numb)))
             return
         self.numb += len(data)
         self.fd.write(data)
@@ -233,7 +236,7 @@ def loop():
             if port == 0:
                 sock.close()
                 break
-            path = recvuntil(sock, '\x00', drop=True)
+            path = recvuntil(sock, b'\x00', drop=True).decode()
             f = (addr, port, path)
             if f not in files:
                 h = pwnlib.term.output(fmt_file(f, not files), float=True)

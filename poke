@@ -1,8 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import argparse
 import errno
 import os
-import pwnlib
+import pwnlib.util.misc
+import pwnlib.term
+import pwnlib.term.text
+import pwnlib.util.net
 import select
 import socket
 import struct
@@ -47,9 +50,9 @@ args = parser.parse_args()
 
 def _log(emblem, msg):
     t = time.strftime('%T', time.localtime())
-    print >>sys.stderr, '%s %s %s' % \
+    print('%s %s %s' % \
         (pwnlib.term.text.magenta(t),
-         emblem, msg)
+         emblem, msg), file=sys.stderr)
 
 def debug(s):
     if args.verbose:
@@ -213,8 +216,8 @@ class Directory(TCPConnect):
               (self.addr, self.port))
         for i in items:
             self.sock.send(struct.pack('!H', i.port) + \
-                           i.path + '\x00')
-        self.sock.send('\x00\x00')
+                           i.path.encode() + b'\x00')
+        self.sock.send(b'\x00\x00')
         self.sock.close()
     def on_refused(self):
         warn('%s refused connection on port %d' % \
@@ -225,7 +228,7 @@ class PeekHandler(UDPListen):
         UDPListen.__init__(self, port)
         info('Listening on port %d' % self.port)
     def on_data(self, data, addr):
-        if len(data) != 8 or data[:6] != 'POKEME':
+        if len(data) != 8 or data[:6] != b'POKEME':
             debug('Ignoring bogus request from %s' % addr)
             return
         if addr in self_addrs:
@@ -252,7 +255,7 @@ class Transfer(Selectable):
                 tar.close()
                 self.fd.seek(0)
             else:
-                self.fd = open(self.path, 'r')
+                self.fd = open(self.path, 'rb')
         except IOError as e:
             if e.errno == errno.ENOENT:
                 warn('Could not open "%s" for reading' % self.path)
@@ -270,7 +273,7 @@ class Transfer(Selectable):
             data = self.fd.read(4096)
             if data:
                 try:
-                    self.sock.send(data)
+                    self.sock.sendall(data)
                 except socket.error as e:
                     if e.errno in (errno.ECONNRESET, errno.EPIPE):
                         self.finish()
